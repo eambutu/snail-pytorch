@@ -49,6 +49,7 @@ def train(opt, tr_dataloader, model, optim, val_dataloader=None):
     last_model_path = os.path.join(opt.exp, 'last_model.pth')
 
     loss_fn = nn.CrossEntropyLoss()
+    seq_size = opt.num_cls * opt.num_samples + 1
 
     for epoch in range(opt.epochs):
         print('=== Epoch: {} ==='.format(epoch))
@@ -58,16 +59,22 @@ def train(opt, tr_dataloader, model, optim, val_dataloader=None):
         for batch in tqdm(tr_iter):
             optim.zero_grad()
             x, y = batch
-            one_hot, idxs = labels_to_one_hot(opt, y)
-            last_target = Variable(torch.Tensor(np.array([idxs[-1]])).long())
-            y = torch.Tensor(one_hot)
+            one_hots = []
+            last_targets = []
+            for i in range(opt.batch_size):
+                one_hot, idxs = labels_to_one_hot(opt, y[i * seq_size: (i + 1) * seq_size])
+                one_hots.append(one_hot)
+                last_targets.append(idxs[-1])
+            last_targets = Variable(torch.Tensor(last_targets).long())
+            one_hots = [torch.Tensor(temp) for temp in one_hots]
+            y = torch.cat(one_hots, dim=0)
             x, y = Variable(x), Variable(y)
             if opt.cuda:
                 x, y = x.cuda(), y.cuda()
-                last_target = last_target.cuda()
+                last_targets = last_targets.cuda()
             model_output = model(x, y)
-            last_model = model_output[:, -1, :].view((-1, opt.num_cls))
-            loss = loss_fn(last_model, last_target)
+            last_model = model_output[:, -1, :]
+            loss = loss_fn(last_model, last_targets)
             loss.backward()
             optim.step()
             train_loss.append(loss.data[0])
@@ -132,11 +139,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--exp', type=str, default='default')
     parser.add_argument('--epochs', type=int, default=100)
-    parser.add_argument('--iterations', type=int, default=100)
+    parser.add_argument('--iterations', type=int, default=10000)
     parser.add_argument('--dataset', type=str, default='omniglot')
     parser.add_argument('--num_cls', type=int, default=5)
     parser.add_argument('--num_samples', type=int, default=1)
-    parser.add_argument('--lr', type=float, default=0.01)
+    parser.add_argument('--lr', type=float, default=0.0001)
+    parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--cuda', action='store_true')
     options = parser.parse_args()
 
