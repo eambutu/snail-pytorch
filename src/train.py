@@ -36,6 +36,28 @@ def labels_to_one_hot(opt, labels):
     one_hot[np.arange(labels.size), idxs] = 1
     return one_hot, idxs
 
+def batch_for_few_shot(opt, x, y):
+    seq_size = opt.num_cls * opt.num_samples + 1
+    one_hots = []
+    last_targets = []
+    for i in range(opt.batch_size):
+        one_hot, idxs = labels_to_one_hot(opt, y[i * seq_size: (i + 1) * seq_size])
+        one_hots.append(one_hot)
+        last_targets.append(idxs[-1])
+    last_targets = Variable(torch.Tensor(last_targets).long())
+    one_hots = [torch.Tensor(temp) for temp in one_hots]
+    y = torch.cat(one_hots, dim=0)
+    x, y = Variable(x), Variable(y)
+    if opt.cuda:
+        x, y = x.cuda(), y.cuda()
+        last_targets = last_targets.cuda()
+    return x, y, last_targets
+
+def get_acc(last_model, last_targets):
+    _, preds = last_model.max(1)
+    acc = torch.eq(preds, last_targets).float().mean()
+    return acc.data[0]
+
 def train(opt, tr_dataloader, model, optim, val_dataloader=None):
     if val_dataloader is None:
         best_state = None
@@ -49,7 +71,6 @@ def train(opt, tr_dataloader, model, optim, val_dataloader=None):
     last_model_path = os.path.join(opt.exp, 'last_model.pth')
 
     loss_fn = nn.CrossEntropyLoss()
-    seq_size = opt.num_cls * opt.num_samples + 1
 
     for epoch in range(opt.epochs):
         print('=== Epoch: {} ==='.format(epoch))
@@ -59,19 +80,7 @@ def train(opt, tr_dataloader, model, optim, val_dataloader=None):
         for batch in tqdm(tr_iter):
             optim.zero_grad()
             x, y = batch
-            one_hots = []
-            last_targets = []
-            for i in range(opt.batch_size):
-                one_hot, idxs = labels_to_one_hot(opt, y[i * seq_size: (i + 1) * seq_size])
-                one_hots.append(one_hot)
-                last_targets.append(idxs[-1])
-            last_targets = Variable(torch.Tensor(last_targets).long())
-            one_hots = [torch.Tensor(temp) for temp in one_hots]
-            y = torch.cat(one_hots, dim=0)
-            x, y = Variable(x), Variable(y)
-            if opt.cuda:
-                x, y = x.cuda(), y.cuda()
-                last_targets = last_targets.cuda()
+            x, y, last_targets = batch_for_few_shot(opt, x, y)
             model_output = model(x, y)
             last_model = model_output[:, -1, :]
             loss = loss_fn(last_model, last_targets)
@@ -89,13 +98,12 @@ def train(opt, tr_dataloader, model, optim, val_dataloader=None):
         model.eval()
         for batch in val_iter:
             x, y = batch
-            x, y = Variable(x), Variable(y)
-            if opt.cuda:
-                x, y = x.cuda(), y.cuda()
-            model_output = model(x)
-            l, acc = loss(model_output, target=y, n_support=opt.num_support_val) 
-            val_loss.append(l.data[0])
-            val_acc.append(acc.data[0])
+            x, y, last_targets = batch_for_few_shot(opt, x, y)
+            model_output = model(x, y)
+            last_model = model_output[:, -1, :]
+            loss = loss_fn(last_model, last_targets)
+            val_loss.append(loss.data[0])
+            val_acc.append(get_acc(last_model, last_targets))
         avg_loss = np.mean(val_loss[-opt.iterations:])
         avg_acc = np.mean(val_acc[-opt.iterations:])
         postfix = ' (Best)' if avg_acc >= best_acc else ' (Best: {})'.format(
@@ -121,12 +129,10 @@ def test(opt, test_dataloader, model):
         test_iter = iter(test_dataloader)
         for batch in test_iter:
             x, y = batch
-            x, y = Variable(x), Variable(y)
-            if opt.cuda:
-                x, y = x.cuda(), y.cuda()
-            model_output = model(x)
-            l, acc = loss(model_output, target=y, n_support=opt.num_support_tr)
-            avg_acc.append(acc.data[0])
+            x, y, last_targets = batch_for_few_shot(opt, x, y)
+            model_output = model(x, y)
+            last_model = model_output[:, -1, :]
+            avg_acc.append(get_acc(last_model, last_targets))
     avg_acc = np.mean(avg_acc)
     print('Test Acc: {}'.format(avg_acc))
 
