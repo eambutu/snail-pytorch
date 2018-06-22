@@ -114,11 +114,10 @@ def train(opt, tr_dataloader, model, optim, val_dataloader=None):
             torch.save(model.state_dict(), best_model_path)
             best_acc = avg_acc
             best_state = model.state_dict()
+        for name in ['train_loss', 'train_acc', 'val_loss', 'val_acc']:
+            save_list_to_file(os.path.join(opt.exp, name + '.txt'), locals()[name])
 
     torch.save(model.state_dict(), last_model_path)
-
-    for name in ['train_loss', 'train_acc', 'val_loss', 'val_acc']:
-        save_list_to_file(os.path.join(opt.exp, name + '.txt'), locals()[name])
 
     return best_state, best_acc, train_loss, train_acc, val_loss, val_acc
 

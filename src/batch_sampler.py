@@ -58,6 +58,8 @@ class BatchSampler(object):
                 for i, c in enumerate(self.classes[c_idxs]):
                     s = slice(i, i + num_samples, cpi)
                     label_idx = np.argwhere(self.classes == c)[0, 0]
+                    if spc > self.label_lens[label_idx]:
+                        raise AssertionError('More samples per class than exist in the dataset')
                     sample_idxs = np.random.permutation(self.label_lens[label_idx])[:spc]
                     batch[s] = self.label_tens[label_idx][sample_idxs]
                 offset = random.randint(0, 4)
