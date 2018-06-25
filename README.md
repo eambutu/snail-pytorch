@@ -8,7 +8,7 @@ Much of the boiler plate code for setting up datasets and what not came from a P
 Below are the following attempts to reproduce the results in the reference
 paper:
 
-Omniglot:
+### Omniglot:
 
 | Model | 1-shot (5-way Acc.) | 5-shot (5-way Acc.) | 1 -shot (20-way Acc.) | 5-shot (20-way Acc.)|
 | --- | --- | --- | --- | --- |
@@ -24,12 +24,12 @@ Omniglot:
 \* achieved running `python train.py --exp omniglot_20way_5shot --num_cls 20
 --num_samples 5 --cuda`
 
-Mini-Imagenet:
+### Mini-Imagenet:
 
 In progress. Writing the code for the experiments should be done soon but the
 main bottleneck in these experiments for me is compute, if someone would be
 willing to run and report numbers that would be much appreciated.
 
-RL:
+### RL:
 
 In progress.
