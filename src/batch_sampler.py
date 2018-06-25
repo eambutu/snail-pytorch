@@ -7,9 +7,6 @@ import torch
 class BatchSampler(object):
     '''
     BatchSampler: yield a batch of indexes at each iteration.
-    Indexes are calculated by keeping in account 'classes_per_it' and 'num_samples',
-    In fact at every iteration the batch indexes will refer to  'num_support' + 'num_query' samples
-    for 'classes_per_it' random classes.
 
     __len__ returns the number of episodes per epoch (same as 'self.iterations').
     '''
@@ -21,7 +18,7 @@ class BatchSampler(object):
         - labels: an iterable containing all the labels for the current dataset
         samples indexes will be infered from this iterable.
         - classes_per_it: number of random classes for each iteration
-        - num_samples: number of samples for each iteration for each class (support + query)
+        - num_samples: number of samples for each iteration for each class
         - iterations: number of iterations (episodes) per epoch
         '''
         super(BatchSampler, self).__init__()
