@@ -1,7 +1,7 @@
 # coding=utf-8
 from utils import init_dataset
 from omniglot_dataset import OmniglotDataset
-from snail import SnailOmniglot
+from snail import SnailFewShot
 
 import argparse
 import torch
@@ -15,8 +15,7 @@ import copy
 
 
 def init_model(opt):
-    if opt.dataset == 'omniglot':
-        model = SnailOmniglot(opt.num_cls, opt.num_samples)
+    model = SnailFewShot(opt.num_cls, opt.num_samples, opt.dataset)
     model = model.cuda() if opt.cuda else model
     return model
 
@@ -56,7 +55,7 @@ def batch_for_few_shot(opt, x, y):
 def get_acc(last_model, last_targets):
     _, preds = last_model.max(1)
     acc = torch.eq(preds, last_targets).float().mean()
-    return acc.data[0]
+    return acc.item()
 
 def train(opt, tr_dataloader, model, optim, val_dataloader=None):
     if val_dataloader is None:
@@ -86,12 +85,11 @@ def train(opt, tr_dataloader, model, optim, val_dataloader=None):
             loss = loss_fn(last_model, last_targets)
             loss.backward()
             optim.step()
-            train_loss.append(loss.data[0])
-            #train_acc.append(acc.data[0])
+            train_loss.append(loss.item())
+            train_acc.append(get_acc(last_model, last_targets))
         avg_loss = np.mean(train_loss[-opt.iterations:])
-        #avg_acc = np.mean(train_acc[-opt.iterations:])
-        #print('Avg Train Loss: {}, Avg Train Acc: {}'.format(avg_loss, avg_acc))
-        print('Avg Train Loss: {}'.format(avg_loss))
+        avg_acc = np.mean(train_acc[-opt.iterations:])
+        print('Avg Train Loss: {}, Avg Train Acc: {}'.format(avg_loss, avg_acc))
         if val_dataloader is None:
             continue
         val_iter = iter(val_dataloader)
@@ -102,7 +100,7 @@ def train(opt, tr_dataloader, model, optim, val_dataloader=None):
             model_output = model(x, y)
             last_model = model_output[:, -1, :]
             loss = loss_fn(last_model, last_targets)
-            val_loss.append(loss.data[0])
+            val_loss.append(loss.item())
             val_acc.append(get_acc(last_model, last_targets))
         avg_loss = np.mean(val_loss[-opt.iterations:])
         avg_acc = np.mean(val_acc[-opt.iterations:])

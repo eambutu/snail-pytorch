@@ -1,7 +1,7 @@
 # coding=utf-8
 from batch_sampler import BatchSampler
 from omniglot_dataset import OmniglotDataset
-#from mini_imagenet_dataset import MiniImagenetDataset
+from mini_imagenet_dataset import MiniImagenetDataset
 import torch
 
 

@@ -3,6 +3,11 @@ An implementation of Simple Neural Attentive Meta-Learner (SNAIL) ([paper](https
 
 Much of the boiler plate code for setting up datasets and what not came from a PyTorch implementation of [Prototypical Networks](https://github.com/orobix/Prototypical-Networks-for-Few-shot-Learning-PyTorch/blob/master/README.md).
 
+## Mini-Imagenet Dataset
+
+Follow the instructions here: https://github.com/renmengye/few-shot-ssl-public
+to download the mini-imagenet dataset.
+
 ## Performance
 
 Below are the following attempts to reproduce the results in the reference

@@ -6,13 +6,19 @@ import torch.nn.functional as F
 from resnet_blocks import *
 from blocks import *
 
-class SnailOmniglot(nn.Module):
-    def __init__(self, N, K, use_cuda=True):
+class SnailFewShot(nn.Module):
+    def __init__(self, N, K, task, use_cuda=True):
         # N-way, K-shot
-        super(SnailOmniglot, self).__init__()
-        self.omniglot = OmniglotNet()
+        super(SnailFewShot, self).__init__()
+        if task == 'omniglot':
+            self.encoder = OmniglotNet()
+            num_channels = 64 + N
+        elif task == 'mini_imagenet':
+            self.encoder = MiniImagenetNet()
+            num_channels = 384 + N
+        else:
+            raise ValueError('Not recognized task value')
         num_filters = int(math.ceil(math.log(N * K + 1)))
-        num_channels = 64 + N
         self.attention1 = AttentionBlock(num_channels, 64, 32)
         num_channels += 32
         self.tc1 = TCBlock(num_channels, N * K + 1, 128)
@@ -29,8 +35,8 @@ class SnailOmniglot(nn.Module):
         self.use_cuda = use_cuda
 
     def forward(self, input, labels):
-        x = self.omniglot(input)
-        batch_size = labels.size()[0] / (self.N * self.K + 1)
+        x = self.encoder(input)
+        batch_size = int(labels.size()[0] / (self.N * self.K + 1))
         last_idxs = [(i + 1) * (self.N * self.K + 1) - 1 for i in range(batch_size)]
         if self.use_cuda:
             labels[last_idxs] = torch.Tensor(np.zeros((batch_size, labels.size()[1]))).cuda()
