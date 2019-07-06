@@ -18,7 +18,7 @@ class SnailFewShot(nn.Module):
             num_channels = 384 + N
         else:
             raise ValueError('Not recognized task value')
-        num_filters = int(math.ceil(math.log(N * K + 1)))
+        num_filters = int(math.ceil(math.log(N * K + 1, 2)))
         self.attention1 = AttentionBlock(num_channels, 64, 32)
         num_channels += 32
         self.tc1 = TCBlock(num_channels, N * K + 1, 128)

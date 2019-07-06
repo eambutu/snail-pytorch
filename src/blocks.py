@@ -36,7 +36,7 @@ class TCBlock(nn.Module):
     def __init__(self, in_channels, seq_length, filters):
         super(TCBlock, self).__init__()
         self.dense_blocks = nn.ModuleList([DenseBlock(in_channels + i * filters, 2 ** (i+1), filters)
-                                           for i in range(int(math.ceil(math.log(seq_length))))])
+                                           for i in range(int(math.ceil(math.log(seq_length, 2))))])
 
     def forward(self, input):
         # input is dimensions (N, T, in_channels)
